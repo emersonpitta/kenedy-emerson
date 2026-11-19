@@ -1,5 +1,6 @@
 services:
   api:
+    image: cetam-api:v1
     build:
       context: .
       dockerfile: Dockerfile

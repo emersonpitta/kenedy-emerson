@@ -1,5 +1,11 @@
 FROM python:3.14-slim
 
+ARG IMAGE_VERSION=v1
+
+LABEL org.opencontainers.image.title="Classificador de Spam" \
+      org.opencontainers.image.version="${IMAGE_VERSION}" \
+      org.opencontainers.image.description="API e pagina web para classificacao de mensagens spam"
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     APP_ENV=prod
