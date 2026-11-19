@@ -1,0 +1,74 @@
+<!doctype>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Classificador de spam</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">MLOps · API de inferência</p>
+        <h1>Classificador de spam</h1>
+      </div>
+      <div class="status-group">
+        <span id="versionBadge" class="badge">versão —</span>
+        <span id="healthBadge" class="badge status-checking"><span class="dot"></span> Verificando</span>
+      </div>
+    </header>
+
+    <section class="workspace">
+      <div class="input-column">
+        <label for="apiKey">Chave de API</label>
+        <div class="secret-field">
+          <input id="apiKey" type="password" placeholder="Digite a chave" autocomplete="off">
+          <button id="toggleKey" class="icon-button" type="button" aria-label="Mostrar chave">Ver</button>
+        </div>
+
+        <label for="message">Mensagem</label>
+        <textarea id="message" maxlength="2000" placeholder="Cole ou digite uma mensagem..."></textarea>
+
+        <div class="actions">
+          <button id="classifyButton" class="primary-button" type="button">Classificar</button>
+          <button id="spamExample" class="secondary-button" type="button">Ex. spam</button>
+          <button id="normalExample" class="secondary-button" type="button">Ex. comum</button>
+        </div>
+      </div>
+
+      <aside class="result-column">
+        <p class="section-label">Resultado</p>
+        <div class="result-header">
+          <span id="resultLabel" class="result-label neutral">Aguardando</span>
+          <span id="latencyLabel" class="latency">— ms</span>
+        </div>
+
+        <p class="probability-label">Probabilidade</p>
+        <div class="probability-row">
+          <div class="progress-track">
+            <div id="probabilityBar" class="progress-bar"></div>
+          </div>
+          <strong id="probabilityValue">—</strong>
+        </div>
+
+        <p id="servedBy" class="served-by">respondido pela —</p>
+        <div id="messageBox" class="message-box hidden" role="alert"></div>
+      </aside>
+    </section>
+
+    <section class="operation-panel">
+      <div class="panel-heading">
+        <h2>Painel de operação</h2>
+        <button id="loadButton" class="secondary-button compact" type="button">Enviar 50 requisições</button>
+      </div>
+      <div class="metrics">
+        <article><span>Requisições</span><strong id="requestCount">0</strong></article>
+        <article><span>Erros 4xx/5xx</span><strong id="errorCount">0</strong></article>
+        <article><span>Latência média</span><strong id="averageLatency">— ms</strong></article>
+      </div>
+    </section>
+  </main>
+  <script src="/static/app.js"></script>
+</body>
+</html>
