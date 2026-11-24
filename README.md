@@ -205,7 +205,9 @@ Os avisos registrados são avisos de compatibilidade e de uso de APIs internas d
 - `/health` validado dentro do container com `versao: v1` e `ambiente: dev`.
 - `/predict` validado dentro do container com resposta de classificação `spam`.
 - Repositório GitHub sincronizado na branch `main`.
-- Publicação online ainda depende da URL e das variáveis configuradas na plataforma de hospedagem escolhida.
+- Aplicação publicada no Render com HTTPS: https://kenedy-emerson.onrender.com.
+- Endpoint online `/health` validado com resposta HTTP `200`; página e classificação também verificadas no navegador.
+- O serviço está no plano gratuito do Render e pode levar alguns segundos para responder após ficar inativo.
 
 ## Empacotamento Docker atualizado
 
@@ -513,7 +515,9 @@ O Compose configura `APP_ENV=dev`, `MODEL_VERSION=v1` e uma chave fictícia de A
 - `/health` validado dentro do container com `versao: v1` e `ambiente: dev`.
 - `/predict` validado dentro do container com resposta de classificação `spam`.
 - Repositório GitHub sincronizado na branch `main`.
-- Publicação online ainda depende da URL e das variáveis configuradas na plataforma de hospedagem escolhida.
+- Aplicação publicada no Render com HTTPS: https://kenedy-emerson.onrender.com.
+- Endpoint online `/health` validado com resposta HTTP `200`; página e classificação também verificadas no navegador.
+- O serviço está no plano gratuito do Render e pode levar alguns segundos para responder após ficar inativo.
 
 ## Empacotamento Docker atualizado
 
