@@ -149,7 +149,9 @@ Gere uma chave aleatória localmente e guarde-a em um gerenciador de senhas; con
 python -c "import secrets,hashlib; key=secrets.token_urlsafe(32); print('Guarde esta chave para usar na página:',key); print('API_KEY_HASH='+hashlib.sha256(key.encode()).hexdigest())"
 ```
 
-Copie o valor `API_KEY_HASH` gerado para `.env` e use a chave original no campo da página. O servidor guarda apenas um hash SHA-256, não a chave reversível; `hmac.compare_digest` compara os hashes em tempo constante. A chave anterior do Compose era pública/fictícia: substitua-a por uma chave nova. Nunca envie `.env` ou a chave para o Git. Se `API_KEY_HASH` estiver ausente ou inválido, o endpoint de predição fica bloqueado com `503`.
+Copie o valor `API_KEY_HASH` gerado para `.env` e use a chave original no campo **Chave de API** da página. O campo da interface deve receber a chave secreta gerada, nunca `API_KEY_HASH=...` ou o hash hexadecimal.
+
+O servidor guarda apenas um hash SHA-256, não a chave reversível; `hmac.compare_digest` compara os hashes em tempo constante. Nunca envie `.env` ou a chave para o Git. Se `API_KEY_HASH` estiver ausente ou inválido, o endpoint de predição fica bloqueado com `503`; com a chave incorreta, retorna `401`.
 
 ## Testes automatizados
 
@@ -323,7 +325,14 @@ Como o deploy automático do Render está desativado, a atualização em produç
 5. Não é necessário cadastrar credenciais do GHCR: o workflow usa `GITHUB_TOKEN` com permissão de publicação.
 6. Faça um push em `main` para executar o fluxo completo. Acompanhe as quatro etapas na aba **Actions** do GitHub.
 
-O endereço público é exibido no painel do serviço do Render depois que a primeira publicação terminar. Ele terá o formato `https://<nome-do-servico>.onrender.com`; substitua o link nesta documentação após a criação do serviço. O plano gratuito do Render pode suspender serviços inativos, fazendo com que a primeira requisição após um período parado demore mais.
+O endereço público conhecido do serviço é https://kenedy-emerson.onrender.com. O plano gratuito pode suspender serviços inativos, fazendo com que a primeira requisição após um período parado demore mais.
+
+Estado da atualização mais recente:
+
+- Commit `b1c77de` publicado na branch `main`.
+- Build, lint, testes e publicação da imagem no GHCR concluídos.
+- Deploy no Render pendente até o cadastro correto de `RENDER_DEPLOY_HOOK_URL` nas Actions do GitHub.
+- Para atualizar o serviço, execute novamente o workflow **CI/CD** depois de configurar o segredo.
 
 ## Empacotamento Docker atualizado
 
@@ -358,9 +367,11 @@ URLs locais do container:
 
 ## Pendências de entrega
 
-- [ ] Informar a URL pública após o deploy.
-- [ ] Registrar `APP_ENV=test` na plataforma online.
-- [ ] Configurar `MODEL_VERSION=v1` e `API_KEY_HASH` na plataforma online, guardando a chave original para uso na interface.
+- [x] Informar a URL pública conhecida: https://kenedy-emerson.onrender.com.
+- [ ] Publicar o commit mais recente no Render.
+- [ ] Configurar `RENDER_DEPLOY_HOOK_URL` nas Actions do GitHub.
+- [ ] Registrar `APP_ENV=prod`, `MODEL_VERSION=v1` e o `API_KEY_HASH` correspondente na plataforma online.
+- [ ] Guardar a chave secreta original fora do repositório e usá-la no campo da interface.
 - [ ] Executar os testes da aplicação após o deploy.
 - [ ] Testar chave ausente, chave incorreta e texto vazio pela interface.
 - [ ] Registrar integrantes da dupla e responsabilidades.
@@ -563,7 +574,7 @@ Acesse:
 
 - `MODEL_VERSION`: versão apresentada pela API. Padrão: `v1`.
 - `APP_ENV`: ambiente apresentado pela API. Padrão: `dev`.
-- `API_KEY_HASH`: hash SHA-256 obrigatório para habilitar predições; a chave original é enviada no cabeçalho `X-API-Key`.
+- `API_KEY_HASH`: hash SHA-256 obrigatório para habilitar predições; a chave original, não o hash, é enviada no campo da página e no cabeçalho `X-API-Key`.
 - `MODEL_PATH`: caminho opcional do modelo `.joblib`.
 
 Quando `API_KEY_HASH` não estiver definida ou for inválida, `/predict` retorna `503` (fail-closed). Com configuração válida, somente a chave original correspondente permite a predição; a página envia a chave apenas no cabeçalho da requisição. `/health` continua público para permitir verificações de disponibilidade.
@@ -669,9 +680,11 @@ URLs locais do container:
 
 ## Pendências de entrega
 
-- [ ] Informar a URL pública após o deploy.
-- [ ] Registrar `APP_ENV=test` na plataforma online.
-- [ ] Configurar `MODEL_VERSION=v1` e `API_KEY_HASH` na plataforma online, guardando a chave original para uso na interface.
+- [x] Informar a URL pública conhecida: https://kenedy-emerson.onrender.com.
+- [ ] Publicar o commit mais recente no Render.
+- [ ] Configurar `RENDER_DEPLOY_HOOK_URL` nas Actions do GitHub.
+- [ ] Registrar `APP_ENV=prod`, `MODEL_VERSION=v1` e o `API_KEY_HASH` correspondente na plataforma online.
+- [ ] Guardar a chave secreta original fora do repositório e usá-la no campo da interface.
 - [ ] Executar os testes da aplicação após o deploy.
 - [ ] Testar chave ausente, chave incorreta e texto vazio pela interface.
 - [ ] Registrar integrantes da dupla e responsabilidades.
