@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: classificador-spam
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeploy: false
+    envVars:
+      - key: APP_ENV
+        value: prod
+      - key: MODEL_VERSION
+        value: v1
+      - key: API_KEY_HASH
+        sync: false

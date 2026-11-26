@@ -9,5 +9,5 @@ services:
     environment:
       APP_ENV: dev
       MODEL_VERSION: v1
-      API_KEY: chave-ficticia-123
+      API_KEY_HASH: ${API_KEY_HASH:-}
     restart: unless-stopped

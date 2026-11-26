@@ -98,9 +98,10 @@ O rótulo possível é `spam` ou `nao_spam`. O valor de probabilidade representa
 
 - Texto contendo somente espaços é rejeitado.
 - Texto vazio não é permitido pelo contrato.
-- `/predict` exige que `API_KEY` esteja configurada e que o cabeçalho `X-API-Key` contenha a chave correta.
-- Sem `API_KEY` configurada, o endpoint retorna `503`; sem a chave correta, retorna `401`. Em ambos os casos, o modelo não executa a predição.
-- A página e os arquivos estáticos usam `Cache-Control: no-store` para evitar que o navegador reutilize uma interface ou script antigo.
+- `/predict` sempre exige o cabeçalho `X-API-Key` e uma configuração válida de `API_KEY_HASH`.
+- Sem a chave correta, o endpoint retorna `401`; sem hash configurado, retorna `503` e não permite predições.
+- A página também bloqueia o envio sem chave, mas a validação decisiva é feita pela API antes de executar o modelo.
+- A página e os arquivos estáticos são enviados com `Cache-Control: no-store` para evitar o uso de uma interface ou script antigo pelo navegador.
 - `/health` não exige chave.
 - `MODEL_VERSION` define a versão exibida pela API.
 - `APP_ENV` identifica o ambiente exibido pela API.
@@ -115,6 +116,7 @@ cd .\cetam-disciplina-mlops-e-deploy-main
 .\..\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 Copy-Item .env.example .env
+# Gere uma chave e configure o API_KEY_HASH no .env (instruções abaixo)
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
@@ -138,18 +140,16 @@ Não execute o servidor a partir da pasta externa que contém apenas outra pasta
 |---|---:|---|---|
 | `MODEL_VERSION` | Não | `v1` | Versão apresentada pela API |
 | `APP_ENV` | Não | `dev` | Ambiente apresentado por `/health` |
-| `API_KEY` | Sim, para predições | Sem valor | Habilita `/predict`; sem ela, o endpoint retorna `503` |
+| `API_KEY_HASH` | Para predições | Sem valor | SHA-256 hexadecimal da chave de API |
 | `MODEL_PATH` | Não | `model/modelo.joblib` | Caminho do modelo |
 
-Exemplo baseado em `.env.example`:
+Gere uma chave aleatória localmente e guarde-a em um gerenciador de senhas; configure somente o hash no `.env`:
 
-```dotenv
-APP_ENV=dev
-MODEL_VERSION=v1
-API_KEY=chave-ficticia-123
+```powershell
+python -c "import secrets,hashlib; key=secrets.token_urlsafe(32); print('Guarde esta chave para usar na página:',key); print('API_KEY_HASH='+hashlib.sha256(key.encode()).hexdigest())"
 ```
 
-O arquivo `.env` não deve ser enviado ao Git. A chave usada no exercício é fictícia.
+Copie o valor `API_KEY_HASH` gerado para `.env` e use a chave original no campo da página. O servidor guarda apenas um hash SHA-256, não a chave reversível; `hmac.compare_digest` compara os hashes em tempo constante. A chave anterior do Compose era pública/fictícia: substitua-a por uma chave nova. Nunca envie `.env` ou a chave para o Git. Se `API_KEY_HASH` estiver ausente ou inválido, o endpoint de predição fica bloqueado com `503`.
 
 ## Testes automatizados
 
@@ -162,15 +162,14 @@ Na raiz interna do projeto:
 Resultado obtido na validação:
 
 ```text
-7 passed, 16 warnings
+4 passed, 15 warnings
 ```
 
 Cobertura dos testes:
 
 - `/health` retorna os valores esperados.
-- `/predict` sem chave retorna `401`; sem `API_KEY` configurada, retorna `503`.
+- `/predict` sem chave retorna `401`; sem hash de configuração retorna `503`.
 - `/predict` aceita uma chave válida e retorna um rótulo permitido.
-- A página e os arquivos estáticos retornam `Cache-Control: no-store`.
 - Texto contendo apenas espaços gera erro HTTP 4xx.
 
 Os avisos registrados são avisos de compatibilidade e de uso de APIs internas do AnyIO/FastAPI; não são falhas dos testes.
@@ -179,7 +178,7 @@ Os avisos registrados são avisos de compatibilidade e de uso de APIs internas d
 
 1. Abra http://127.0.0.1:8000/.
 2. O sistema consulta `/health` ao abrir e a cada 30 segundos.
-3. Informe a chave configurada em `API_KEY`; sem essa configuração no servidor, a API bloqueia as predições.
+3. Informe a chave aleatória que você gerou; sem uma chave válida, a predição não é executada.
 4. Digite uma mensagem ou use um exemplo pronto.
 5. Selecione **Classificar** ou use `Ctrl+Enter`.
 6. Consulte o rótulo, a probabilidade, a latência e a versão na coluna de resultado.
@@ -194,6 +193,95 @@ Os avisos registrados são avisos de compatibilidade e de uso de APIs internas d
 - O painel de carga atual conta requisições no navegador; ele não substitui métricas técnicas do servidor.
 
 ## Situação atual do projeto
+
+## Observabilidade da Etapa 4
+
+- Logs estruturados em JSON são escritos na saída padrão. Cada requisição possui um identificador `X-Request-ID`, devolvido no cabeçalho da resposta e incluído nos registros.
+- `GET /metrics` informa `requisicoes`, `erros_5xx` e `latencia_media_ms`. Os contadores ficam na memória da instância e reiniciam quando o processo reinicia.
+- `GET /ready` verifica se o modelo foi carregado e retorna `503` caso o serviço não esteja pronto.
+- O painel web consulta `/metrics` a cada 5 segundos e após usar o botão de carga. Os números exibidos são as métricas do servidor, não contadores locais do navegador.
+- Execute a verificação simples de saúde em outro terminal:
+
+  ```powershell
+  python scripts/check_health.py
+  ```
+
+- Exemplos de leitura dos logs no Docker:
+
+  ```powershell
+  docker compose logs -f api
+  docker compose logs api 2>&1 | Select-String "ERROR"
+  ```
+
+### Probes e recursos no Kubernetes
+
+Os manifestos da Etapa 4 ficam em `k8s/`:
+
+- `deployment.yaml`: probes de startup, liveness e readiness, requests/limits e atualização RollingUpdate.
+- `service.yaml`: expõe o Deployment pelo nome `spam-service`.
+- `cronjob.yaml`: verifica `http://spam-service/health` a cada 5 minutos dentro do cluster.
+- `secret.example.yaml`: modelo do Secret; não contém uma chave real.
+
+No Docker Desktop com Kubernetes habilitado:
+
+```powershell
+docker build --tag cetam-api:v1 .
+# Gere o Secret com o mesmo hash SHA-256 usado pela API.
+kubectl create secret generic spam-service-secret `
+  --from-literal=api-key-hash="<HASH_SHA256>"
+kubectl apply -f k8s/deployment.yaml
+kubectl apply -f k8s/service.yaml
+kubectl apply -f k8s/cronjob.yaml
+kubectl get pods -w
+kubectl get deployment spam-service
+kubectl describe pod <nome-do-pod>
+```
+
+Para testar o tráfego local:
+
+```powershell
+kubectl port-forward service/spam-service 8000:80
+```
+
+Manuais de operação:
+
+```powershell
+kubectl scale deployment/spam-service --replicas=3
+kubectl set image deployment/spam-service api=cetam-api:v2
+kubectl rollout status deployment/spam-service
+kubectl rollout history deployment/spam-service
+kubectl rollout undo deployment/spam-service
+```
+
+### Alerta simples
+
+O alerta padrão considera críticas estas condições:
+
+- Serviço fora do ar: `/health` não responde HTTP `200` por três verificações consecutivas.
+- Latência alta: `latencia_media_ms` em `/metrics` supera 1000 ms.
+- Erros persistentes: `erros_5xx` cresce durante o período observado.
+
+Antes de uma ação automática, o script usa o limite de três falhas consecutivas para evitar reiniciar por uma instabilidade isolada. Com o `port-forward` ativo:
+
+```powershell
+python scripts/check_health.py
+```
+
+Variáveis opcionais: `HEALTH_URL`, `DEPLOYMENT_NAME`, `HEALTH_INTERVAL_SECONDS`, `HEALTH_TIMEOUT_SECONDS` e `HEALTH_MAX_FAILURES`.
+
+O script registra o resultado e executa `kubectl rollout restart deployment/spam-service` apenas depois de atingir o limite. Reinícios devem ser acompanhados com `kubectl rollout status deployment/spam-service`.
+
+### Evidências da Etapa 4
+
+Conferir e registrar na entrega:
+
+- Print do painel com requisições, erros 5xx e latência média.
+- Trecho dos logs estruturados em JSON.
+- Saída de `kubectl describe pod` mostrando startup, liveness e readiness.
+- Saída de `kubectl get jobs` ou logs do CronJob.
+- Saída do script após falhas consecutivas, se o cluster estiver disponível.
+- Evidência do commit com os manifestos, script e documentação atualizados.
+
 
 - API iniciada com sucesso em http://127.0.0.1:8000.
 - Endpoint `/health` validado com resposta HTTP `200`.
@@ -210,6 +298,32 @@ Os avisos registrados são avisos de compatibilidade e de uso de APIs internas d
 - Aplicação publicada no Render com HTTPS: https://kenedy-emerson.onrender.com.
 - Endpoint online `/health` validado com resposta HTTP `200`; página e classificação também verificadas no navegador.
 - O serviço está no plano gratuito do Render e pode levar alguns segundos para responder após ficar inativo.
+
+## Pipeline CI/CD com GitHub Actions e Render
+
+O workflow `.github/workflows/ci-cd.yml` roda em pull requests e em pushes para `main`, seguindo estas etapas:
+
+1. **Build e lint:** verifica o código com Ruff e constrói a imagem Docker.
+2. **Testes:** executa `pytest`; só começa se o build e o lint passarem.
+3. **Empacotamento:** em push para `main`, publica a imagem no GitHub Container Registry (GHCR), identificada pelo SHA do commit e pela tag `latest`.
+4. **Deploy:** só começa após a publicação da imagem e aciona o Deploy Hook do Render.
+
+Pull requests executam build, lint e testes, mas não publicam imagem nem fazem deploy. O serviço do Render permanece com `autoDeploy: false` em `render.yaml`, para que pushes não contornem o pipeline. O hook inicia uma nova implantação do código-fonte conectado ao Render; a imagem no GHCR é publicada como artefato do pipeline.
+
+Como o deploy automático do Render está desativado, a atualização em produção depende da etapa de deploy do GitHub Actions (configurada com `RENDER_DEPLOY_HOOK_URL`) ou de um deploy manual pelo painel do Render. Confirme que a implantação terminou com sucesso para que a versão publicada inclua as alterações.
+
+### Configurar a publicação
+
+1. Envie este projeto para um repositório GitHub com a branch `main`.
+2. No Render, crie um **Blueprint** e conecte o repositório. O Render usará `render.yaml` para criar o serviço web.
+3. Após o serviço ser criado, copie o **Deploy Hook** em **Settings** do serviço.
+4. No GitHub, abra **Settings → Secrets and variables → Actions → New repository secret** e cadastre:
+   - Nome: `RENDER_DEPLOY_HOOK_URL`
+   - Valor: URL do Deploy Hook copiada do Render
+5. Não é necessário cadastrar credenciais do GHCR: o workflow usa `GITHUB_TOKEN` com permissão de publicação.
+6. Faça um push em `main` para executar o fluxo completo. Acompanhe as quatro etapas na aba **Actions** do GitHub.
+
+O endereço público é exibido no painel do serviço do Render depois que a primeira publicação terminar. Ele terá o formato `https://<nome-do-servico>.onrender.com`; substitua o link nesta documentação após a criação do serviço. O plano gratuito do Render pode suspender serviços inativos, fazendo com que a primeira requisição após um período parado demore mais.
 
 ## Empacotamento Docker atualizado
 
@@ -246,7 +360,7 @@ URLs locais do container:
 
 - [ ] Informar a URL pública após o deploy.
 - [ ] Registrar `APP_ENV=test` na plataforma online.
-- [ ] Configurar `MODEL_VERSION=v1` e `API_KEY` na plataforma online; sem ela, `/predict` retorna `503`.
+- [ ] Configurar `MODEL_VERSION=v1` e `API_KEY_HASH` na plataforma online, guardando a chave original para uso na interface.
 - [ ] Executar os testes da aplicação após o deploy.
 - [ ] Testar chave ausente, chave incorreta e texto vazio pela interface.
 - [ ] Registrar integrantes da dupla e responsabilidades.
@@ -323,8 +437,8 @@ e devolve:
 
 Regras:
 - Texto vazio deve ser rejeitado (erro 4xx).
-- O `/predict` exige `API_KEY` configurada e o cabeçalho `X-API-Key` correto. Sem `API_KEY`,
-  responda **503**; sem a chave correta, responda **401**. O `/health` nunca exige chave.
+- O `/predict` sempre exige o cabeçalho `X-API-Key`, validado contra `API_KEY_HASH`; sem chave
+  correta, responda **401**, e sem hash configurado, **503**. O `/health` nunca exige chave.
 - A `versao` vem da variável de ambiente `MODEL_VERSION`.
 
 ## 5. Etapa 1: passo a passo
@@ -360,10 +474,11 @@ no GitHub.
 
 ### 5.3 Configuração e segredos
 - **Nada de configuração fixa no código.** Leiam tudo de variáveis de ambiente
-  (`MODEL_VERSION`, `APP_ENV`, `API_KEY`).
+  (`MODEL_VERSION`, `APP_ENV`, `API_KEY_HASH`).
 - Copiem `.env.example` para `.env` (o `.gitignore` já impede o envio ao Git).
-- A chave de API deste exercício é **fictícia**. Mesmo assim, tratem como segredo: nunca no
-  código nem no repositório. Em produção, ela é configurada na plataforma de hospedagem.
+- Gere uma chave aleatória de pelo menos 32 bytes, guarde-a em um gerenciador de senhas e configure
+  somente seu SHA-256 em `API_KEY_HASH`. Não coloque a chave original no código nem no repositório.
+  Em produção, configure o hash como segredo na plataforma de hospedagem.
 - `APP_ENV=dev` (na sua máquina) e `APP_ENV=test` (online): o que muda entre os dois?
   Definam e documentem.
 
@@ -402,7 +517,7 @@ necessárias, a URL online e quem fez o quê.
 ## 6. Entrega e critérios de aceite da Etapa 1
 
 - [ ] API com `/health` e `/predict` funcionando **localmente**, conforme o contrato
-- [ ] `/predict` devolve 503 sem `API_KEY`, 401 sem a chave correta e erro 4xx para texto vazio
+- [ ] `/predict` devolve 401 sem a chave correta e 503 sem `API_KEY_HASH`; texto vazio gera erro 4xx
 - [ ] Página web funcionando localmente, com os itens obrigatórios do modelo de site
 - [ ] Configuração por variáveis de ambiente e `.env.example` presente
 - [ ] Nenhum segredo no repositório (conferir o histórico, não só os arquivos atuais)
@@ -448,10 +563,10 @@ Acesse:
 
 - `MODEL_VERSION`: versão apresentada pela API. Padrão: `v1`.
 - `APP_ENV`: ambiente apresentado pela API. Padrão: `dev`.
-- `API_KEY`: chave obrigatória para habilitar `/predict`, enviada no cabeçalho `X-API-Key`.
+- `API_KEY_HASH`: hash SHA-256 obrigatório para habilitar predições; a chave original é enviada no cabeçalho `X-API-Key`.
 - `MODEL_PATH`: caminho opcional do modelo `.joblib`.
 
-Quando `API_KEY` não estiver definida, `/predict` retorna `503` e não executa o modelo. Quando estiver definida, apenas a chave correspondente enviada no cabeçalho da requisição permite a predição; sem ela ou com valor incorreto, retorna `401`. A página e os arquivos estáticos não são armazenados em cache.
+Quando `API_KEY_HASH` não estiver definida ou for inválida, `/predict` retorna `503` (fail-closed). Com configuração válida, somente a chave original correspondente permite a predição; a página envia a chave apenas no cabeçalho da requisição. `/health` continua público para permitir verificações de disponibilidade.
 
 ### Testes
 
@@ -556,7 +671,7 @@ URLs locais do container:
 
 - [ ] Informar a URL pública após o deploy.
 - [ ] Registrar `APP_ENV=test` na plataforma online.
-- [ ] Configurar `MODEL_VERSION=v1` e `API_KEY` na plataforma online; sem ela, `/predict` retorna `503`.
+- [ ] Configurar `MODEL_VERSION=v1` e `API_KEY_HASH` na plataforma online, guardando a chave original para uso na interface.
 - [ ] Executar os testes da aplicação após o deploy.
 - [ ] Testar chave ausente, chave incorreta e texto vazio pela interface.
 - [ ] Registrar integrantes da dupla e responsabilidades.
