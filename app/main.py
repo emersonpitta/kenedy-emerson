@@ -1,4 +1,5 @@
 """API de classificação de mensagens como spam ou não spam."""
+import hmac
 import os
 from pathlib import Path
 
@@ -54,6 +55,17 @@ def pagina():
     return FileResponse(STATIC_DIR / "index.html")
 
 
+@app.middleware("http")
+async def evitar_cache_da_interface(request, call_next):
+    resposta = await call_next(request)
+    if request.method == "GET" and (
+        request.url.path == "/" or request.url.path.startswith("/static/")
+    ):
+        resposta.headers["Cache-Control"] = "no-store"
+        resposta.headers["Pragma"] = "no-cache"
+    return resposta
+
+
 @app.get("/health")
 def health():
     return {"status": "ok", "versao": MODEL_VERSION, "ambiente": APP_ENV}
@@ -61,7 +73,13 @@ def health():
 
 @app.post("/predict")
 def predict(msg: Mensagem, x_api_key: str | None = Header(default=None, alias="X-API-Key")):
-    if API_KEY and x_api_key != API_KEY:
+    if not API_KEY:
+        raise HTTPException(status_code=503, detail="Autenticação não configurada")
+
+    if x_api_key is None or not hmac.compare_digest(
+        x_api_key.encode("utf-8"),
+        API_KEY.encode("utf-8"),
+    ):
         raise HTTPException(status_code=401, detail="Chave de API inválida")
 
     probabilidades = modelo.predict_proba([msg.texto])[0]

@@ -98,8 +98,9 @@ O rótulo possível é `spam` ou `nao_spam`. O valor de probabilidade representa
 
 - Texto contendo somente espaços é rejeitado.
 - Texto vazio não é permitido pelo contrato.
-- Quando `API_KEY` está definida, `/predict` exige o cabeçalho `X-API-Key`.
-- Sem a chave correta, o endpoint retorna `401`.
+- `/predict` exige que `API_KEY` esteja configurada e que o cabeçalho `X-API-Key` contenha a chave correta.
+- Sem `API_KEY` configurada, o endpoint retorna `503`; sem a chave correta, retorna `401`. Em ambos os casos, o modelo não executa a predição.
+- A página e os arquivos estáticos usam `Cache-Control: no-store` para evitar que o navegador reutilize uma interface ou script antigo.
 - `/health` não exige chave.
 - `MODEL_VERSION` define a versão exibida pela API.
 - `APP_ENV` identifica o ambiente exibido pela API.
@@ -137,7 +138,7 @@ Não execute o servidor a partir da pasta externa que contém apenas outra pasta
 |---|---:|---|---|
 | `MODEL_VERSION` | Não | `v1` | Versão apresentada pela API |
 | `APP_ENV` | Não | `dev` | Ambiente apresentado por `/health` |
-| `API_KEY` | Não | Sem valor | Protege `/predict` quando definida |
+| `API_KEY` | Sim, para predições | Sem valor | Habilita `/predict`; sem ela, o endpoint retorna `503` |
 | `MODEL_PATH` | Não | `model/modelo.joblib` | Caminho do modelo |
 
 Exemplo baseado em `.env.example`:
@@ -161,14 +162,15 @@ Na raiz interna do projeto:
 Resultado obtido na validação:
 
 ```text
-4 passed, 15 warnings
+7 passed, 16 warnings
 ```
 
 Cobertura dos testes:
 
 - `/health` retorna os valores esperados.
-- `/predict` sem chave retorna `401` quando `API_KEY` está definida.
+- `/predict` sem chave retorna `401`; sem `API_KEY` configurada, retorna `503`.
 - `/predict` aceita uma chave válida e retorna um rótulo permitido.
+- A página e os arquivos estáticos retornam `Cache-Control: no-store`.
 - Texto contendo apenas espaços gera erro HTTP 4xx.
 
 Os avisos registrados são avisos de compatibilidade e de uso de APIs internas do AnyIO/FastAPI; não são falhas dos testes.
@@ -177,7 +179,7 @@ Os avisos registrados são avisos de compatibilidade e de uso de APIs internas d
 
 1. Abra http://127.0.0.1:8000/.
 2. O sistema consulta `/health` ao abrir e a cada 30 segundos.
-3. Informe a chave fictícia configurada em `API_KEY`, se ela estiver ativa.
+3. Informe a chave configurada em `API_KEY`; sem essa configuração no servidor, a API bloqueia as predições.
 4. Digite uma mensagem ou use um exemplo pronto.
 5. Selecione **Classificar** ou use `Ctrl+Enter`.
 6. Consulte o rótulo, a probabilidade, a latência e a versão na coluna de resultado.
@@ -244,7 +246,7 @@ URLs locais do container:
 
 - [ ] Informar a URL pública após o deploy.
 - [ ] Registrar `APP_ENV=test` na plataforma online.
-- [ ] Configurar `MODEL_VERSION=v1` e `API_KEY` na plataforma online.
+- [ ] Configurar `MODEL_VERSION=v1` e `API_KEY` na plataforma online; sem ela, `/predict` retorna `503`.
 - [ ] Executar os testes da aplicação após o deploy.
 - [ ] Testar chave ausente, chave incorreta e texto vazio pela interface.
 - [ ] Registrar integrantes da dupla e responsabilidades.
@@ -321,8 +323,8 @@ e devolve:
 
 Regras:
 - Texto vazio deve ser rejeitado (erro 4xx).
-- Se a variável `API_KEY` estiver definida, o `/predict` exige o cabeçalho `X-API-Key` com o
-  mesmo valor; sem ele, responda **401**. O `/health` nunca exige chave.
+- O `/predict` exige `API_KEY` configurada e o cabeçalho `X-API-Key` correto. Sem `API_KEY`,
+  responda **503**; sem a chave correta, responda **401**. O `/health` nunca exige chave.
 - A `versao` vem da variável de ambiente `MODEL_VERSION`.
 
 ## 5. Etapa 1: passo a passo
@@ -400,7 +402,7 @@ necessárias, a URL online e quem fez o quê.
 ## 6. Entrega e critérios de aceite da Etapa 1
 
 - [ ] API com `/health` e `/predict` funcionando **localmente**, conforme o contrato
-- [ ] `/predict` devolve 401 sem a chave correta (quando `API_KEY` está definida) e erro 4xx para texto vazio
+- [ ] `/predict` devolve 503 sem `API_KEY`, 401 sem a chave correta e erro 4xx para texto vazio
 - [ ] Página web funcionando localmente, com os itens obrigatórios do modelo de site
 - [ ] Configuração por variáveis de ambiente e `.env.example` presente
 - [ ] Nenhum segredo no repositório (conferir o histórico, não só os arquivos atuais)
@@ -446,10 +448,10 @@ Acesse:
 
 - `MODEL_VERSION`: versão apresentada pela API. Padrão: `v1`.
 - `APP_ENV`: ambiente apresentado pela API. Padrão: `dev`.
-- `API_KEY`: chave opcional exigida no cabeçalho `X-API-Key`.
+- `API_KEY`: chave obrigatória para habilitar `/predict`, enviada no cabeçalho `X-API-Key`.
 - `MODEL_PATH`: caminho opcional do modelo `.joblib`.
 
-Quando `API_KEY` não estiver definida, o `/predict` fica público. Quando estiver definida, a chave da página é enviada apenas no cabeçalho da requisição.
+Quando `API_KEY` não estiver definida, `/predict` retorna `503` e não executa o modelo. Quando estiver definida, apenas a chave correspondente enviada no cabeçalho da requisição permite a predição; sem ela ou com valor incorreto, retorna `401`. A página e os arquivos estáticos não são armazenados em cache.
 
 ### Testes
 
@@ -554,7 +556,7 @@ URLs locais do container:
 
 - [ ] Informar a URL pública após o deploy.
 - [ ] Registrar `APP_ENV=test` na plataforma online.
-- [ ] Configurar `MODEL_VERSION=v1` e `API_KEY` na plataforma online.
+- [ ] Configurar `MODEL_VERSION=v1` e `API_KEY` na plataforma online; sem ela, `/predict` retorna `503`.
 - [ ] Executar os testes da aplicação após o deploy.
 - [ ] Testar chave ausente, chave incorreta e texto vazio pela interface.
 - [ ] Registrar integrantes da dupla e responsabilidades.
