@@ -297,7 +297,7 @@ Conferir e registrar na entrega:
 - `/health` validado dentro do container com `versao: v1` e `ambiente: dev`.
 - `/predict` validado dentro do container com resposta de classificação `spam`.
 - Repositório GitHub sincronizado na branch `main`.
-- Aplicação publicada no Render com HTTPS: https://kenedy-emerson.onrender.com.
+- Aplicação publicada no Render com HTTPS: https://kenedy-emerson-1.onrender.com.
 - Endpoint online `/health` validado com resposta HTTP `200`; página e classificação também verificadas no navegador.
 - O serviço está no plano gratuito do Render e pode levar alguns segundos para responder após ficar inativo.
 
@@ -325,7 +325,7 @@ Como o deploy automático do Render está desativado, a atualização em produç
 5. Não é necessário cadastrar credenciais do GHCR: o workflow usa `GITHUB_TOKEN` com permissão de publicação.
 6. Faça um push em `main` para executar o fluxo completo. Acompanhe as quatro etapas na aba **Actions** do GitHub.
 
-O endereço público conhecido do serviço é https://kenedy-emerson.onrender.com. O plano gratuito pode suspender serviços inativos, fazendo com que a primeira requisição após um período parado demore mais.
+O endereço público conhecido do serviço é https://kenedy-emerson-1.onrender.com. O plano gratuito pode suspender serviços inativos, fazendo com que a primeira requisição após um período parado demore mais.
 
 Estado da atualização mais recente:
 
@@ -367,7 +367,7 @@ URLs locais do container:
 
 ## Pendências de entrega
 
-- [x] Informar a URL pública conhecida: https://kenedy-emerson.onrender.com.
+- [x] Informar a URL pública conhecida: https://kenedy-emerson-1.onrender.com.
 - [ ] Publicar o commit mais recente no Render.
 - [ ] Configurar `RENDER_DEPLOY_HOOK_URL` nas Actions do GitHub.
 - [ ] Registrar `APP_ENV=prod`, `MODEL_VERSION=v1` e o `API_KEY_HASH` correspondente na plataforma online.
@@ -643,7 +643,7 @@ O Compose configura `APP_ENV=dev`, `MODEL_VERSION=v1` e uma chave fictícia de A
 - `/health` validado dentro do container com `versao: v1` e `ambiente: dev`.
 - `/predict` validado dentro do container com resposta de classificação `spam`.
 - Repositório GitHub sincronizado na branch `main`.
-- Aplicação publicada no Render com HTTPS: https://kenedy-emerson.onrender.com.
+- Aplicação publicada no Render com HTTPS: https://kenedy-emerson-1.onrender.com.
 - Endpoint online `/health` validado com resposta HTTP `200`; página e classificação também verificadas no navegador.
 - O serviço está no plano gratuito do Render e pode levar alguns segundos para responder após ficar inativo.
 
@@ -680,7 +680,7 @@ URLs locais do container:
 
 ## Pendências de entrega
 
-- [x] Informar a URL pública conhecida: https://kenedy-emerson.onrender.com.
+- [x] Informar a URL pública conhecida: https://kenedy-emerson-1.onrender.com.
 - [ ] Publicar o commit mais recente no Render.
 - [ ] Configurar `RENDER_DEPLOY_HOOK_URL` nas Actions do GitHub.
 - [ ] Registrar `APP_ENV=prod`, `MODEL_VERSION=v1` e o `API_KEY_HASH` correspondente na plataforma online.
