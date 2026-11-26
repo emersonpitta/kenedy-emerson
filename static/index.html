@@ -3,69 +3,165 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Classificador de spam</title>
+  <meta name="theme-color" content="#0f172a">
+  <title>SpamGuard — Classificador inteligente</title>
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
+  <div class="ambient ambient-one"></div>
+  <div class="ambient ambient-two"></div>
+
   <main class="app-shell">
-    <header class="topbar">
+    <nav class="topbar">
+      <a class="brand" href="/" aria-label="SpamGuard página inicial">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.7 3 8.9 7 10 4-1.1 7-5.3 7-10V6l-7-3Zm0 2.2 4.8 2.1v3.8c0 3.4-1.9 6.5-4.8 7.7-2.9-1.2-4.8-4.3-4.8-7.7V7.3L12 5.2Zm-.9 9.4-2.7-2.7 1.2-1.2 1.5 1.5 3.5-3.5 1.2 1.2-4.7 4.7Z"/></svg>
+        </span>
+        <span>Spam<span>Guard</span></span>
+      </a>
+
+      <div class="nav-actions">
+        <span id="healthBadge" class="health-badge status-checking"><span class="status-dot"></span> Verificando</span>
+        <span id="versionBadge" class="version-badge">v1</span>
+        <button id="themeToggle" class="icon-button theme-button" type="button" aria-label="Alternar tema">
+          <svg class="moon-icon" viewBox="0 0 24 24"><path d="M20 15.2A8.5 8.5 0 0 1 8.8 4a8.5 8.5 0 1 0 11.2 11.2Z"/></svg>
+        </button>
+      </div>
+    </nav>
+
+    <section class="hero">
       <div>
-        <p class="eyebrow">MLOps · API de inferência</p>
-        <h1>Classificador de spam</h1>
+        <p class="eyebrow">Detecção inteligente</p>
+        <h1>Proteja sua caixa de entrada</h1>
+        <p class="hero-copy">Analise mensagens em segundos com o modelo de classificação por inteligência artificial.</p>
       </div>
-      <div class="status-group">
-        <span id="versionBadge" class="badge">versão —</span>
-        <span id="healthBadge" class="badge status-checking"><span class="dot"></span> Verificando</span>
+      <div class="hero-orbit" aria-hidden="true">
+        <span class="orbit-ring"></span>
+        <span class="orbit-core">
+          <svg viewBox="0 0 24 24"><path d="M12 2 4 5.5v6.1c0 5.1 3.4 9.3 8 10.4 4.6-1.1 8-5.3 8-10.4V5.5L12 2Zm0 2.3 5.8 2.6v4.7c0 3.9-2.4 7.3-5.8 8.3-3.4-1-5.8-4.4-5.8-8.3V6.9L12 4.3Zm-1.2 10.8-3-3 1.4-1.4 1.6 1.6 3.8-3.8 1.4 1.4-5.2 5.2Z"/></svg>
+        </span>
       </div>
-    </header>
-
-    <section class="workspace">
-      <div class="input-column">
-        <label for="apiKey">Chave de API</label>
-        <div class="secret-field">
-          <input id="apiKey" type="password" placeholder="Digite a chave" autocomplete="off">
-          <button id="toggleKey" class="icon-button" type="button" aria-label="Mostrar chave">Ver</button>
-        </div>
-
-        <label for="message">Mensagem</label>
-        <textarea id="message" maxlength="2000" placeholder="Cole ou digite uma mensagem..."></textarea>
-
-        <div class="actions">
-          <button id="classifyButton" class="primary-button" type="button">Classificar</button>
-          <button id="spamExample" class="secondary-button" type="button">Ex. spam</button>
-          <button id="normalExample" class="secondary-button" type="button">Ex. comum</button>
-        </div>
-      </div>
-
-      <aside class="result-column">
-        <p class="section-label">Resultado</p>
-        <div class="result-header">
-          <span id="resultLabel" class="result-label neutral">Aguardando</span>
-          <span id="latencyLabel" class="latency">— ms</span>
-        </div>
-
-        <p class="probability-label">Probabilidade</p>
-        <div class="probability-row">
-          <div class="progress-track">
-            <div id="probabilityBar" class="progress-bar"></div>
-          </div>
-          <strong id="probabilityValue">—</strong>
-        </div>
-
-        <p id="servedBy" class="served-by">respondido pela —</p>
-        <div id="messageBox" class="message-box hidden" role="alert"></div>
-      </aside>
     </section>
 
-    <section class="operation-panel">
-      <div class="panel-heading">
-        <h2>Painel de operação</h2>
-        <button id="loadButton" class="secondary-button compact" type="button">Enviar 50 requisições</button>
+    <div class="content-grid">
+      <section class="card analyzer-card">
+        <div class="card-heading">
+          <div>
+            <p class="card-kicker">Analisador</p>
+            <h2>Nova mensagem</h2>
+          </div>
+          <button id="clearButton" class="text-button" type="button">Limpar</button>
+        </div>
+
+        <label for="apiKey">Chave de API</label>
+        <div class="secret-field">
+          <span class="field-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M7 10V7a5 5 0 0 1 10 0v3h1.5A2.5 2.5 0 0 1 21 12.5v7a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 19.5v-7A2.5 2.5 0 0 1 5.5 10H7Zm2 0h6V7a3 3 0 0 0-6 0v3Zm-3.5 2a.5.5 0 0 0-.5.5v7a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.5-.5h-13ZM12 14a1.5 1.5 0 0 1 1 2.62V18h-2v-1.38A1.5 1.5 0 0 1 12 14Z"/></svg>
+          </span>
+          <input id="apiKey" type="password" placeholder="Cole sua chave secreta" autocomplete="off">
+          <button id="toggleKey" class="toggle-key" type="button" aria-label="Mostrar chave">
+            <svg class="eye-icon" viewBox="0 0 24 24"><path d="M12 5c5.5 0 9.5 5.2 9.7 5.4a1 1 0 0 1 0 1.2C21.5 11.8 17.5 17 12 17S2.5 11.8 2.3 11.6a1 1 0 0 1 0-1.2C2.5 10.2 6.5 5 12 5Zm0 2C8.4 7 5.5 9.8 4.4 11c1.1 1.2 4 4 7.6 4s6.5-2.8 7.6-4C18.5 9.8 15.6 7 12 7Zm0 1.8A2.2 2.2 0 1 1 12 13a2.2 2.2 0 0 1 0-4.2Z"/></svg>
+          </button>
+        </div>
+
+        <div class="label-row">
+          <label for="message">Mensagem</label>
+          <span id="characterCount">0 / 2.000</span>
+        </div>
+        <textarea id="message" maxlength="2000" placeholder="Cole ou digite o texto que deseja verificar..."></textarea>
+
+        <div class="examples" aria-label="Mensagens de exemplo">
+          <span>Testar com:</span>
+          <button id="spamExample" type="button">Exemplo de spam</button>
+          <button id="normalExample" type="button">Mensagem normal</button>
+        </div>
+
+        <button id="classifyButton" class="primary-button" type="button">
+          <svg viewBox="0 0 24 24"><path d="m21.7 4.3-8.9 16a1 1 0 0 1-1.8.1l-3.1-5.5-5.5-3.1a1 1 0 0 1 .1-1.8l16-8.4a1 1 0 0 1 1.3.1l1.9 1.9a1 1 0 0 1-.1 1.7ZM18.6 6 7.5 11.8l3.7 2.1 2.1 3.7L18.6 6Z"/></svg>
+          <span>Analisar mensagem</span>
+        </button>
+        <p class="shortcut">⌘/Ctrl + Enter para analisar</p>
+      </section>
+
+      <aside class="card result-card">
+        <div class="card-heading">
+          <div>
+            <p class="card-kicker">Resultado</p>
+            <h2>Análise da mensagem</h2>
+          </div>
+          <button id="copyButton" class="icon-button copy-button" type="button" aria-label="Copiar resultado" disabled>
+            <svg viewBox="0 0 24 24"><path d="M8 8V5.5A2.5 2.5 0 0 1 10.5 3h8A2.5 2.5 0 0 1 21 5.5v8a2.5 2.5 0 0 1-2.5 2.5H16v2.5A2.5 2.5 0 0 1 13.5 21h-8A2.5 2.5 0 0 1 3 18.5v-8A2.5 2.5 0 0 1 5.5 8H8Zm2 0h3.5A2.5 2.5 0 0 1 16 10.5V14h2.5a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5h-8a.5.5 0 0 0-.5.5V8Zm-4.5 2A.5.5 0 0 0 5 10.5v8a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-8a.5.5 0 0 0-.5-.5h-8Z"/></svg>
+          </button>
+        </div>
+
+        <div id="resultEmpty" class="result-empty">
+          <div class="empty-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.7 3 8.9 7 10 4-1.1 7-5.3 7-10V6l-7-3Zm0 2.2 4.8 2.1v3.8c0 3.4-1.9 6.5-4.8 7.7-2.9-1.2-4.8-4.3-4.8-7.7V7.3L12 5.2Z"/></svg>
+          </div>
+          <h3>Aguardando análise</h3>
+          <p>O resultado aparecerá aqui após analisar uma mensagem.</p>
+        </div>
+
+        <div id="resultContent" class="result-content hidden">
+          <div class="result-top">
+            <span id="resultLabel" class="result-label neutral">Aguardando</span>
+            <span id="latencyLabel" class="latency">— ms</span>
+          </div>
+
+          <div class="confidence">
+            <div class="confidence-heading">
+              <span>Confiança</span>
+              <strong id="probabilityValue">—</strong>
+            </div>
+            <div class="progress-track">
+              <div id="probabilityBar" class="progress-bar"></div>
+            </div>
+          </div>
+
+          <div class="result-meta">
+            <span>Modelo</span>
+            <strong id="servedBy">—</strong>
+          </div>
+        </div>
+
+        <div id="messageBox" class="message-box hidden" role="alert"></div>
+      </aside>
+    </div>
+
+    <section class="card operation-card">
+      <div class="card-heading operation-heading">
+        <div>
+          <p class="card-kicker">Monitoramento</p>
+          <h2>Painel de operação</h2>
+        </div>
+        <button id="loadButton" class="secondary-button" type="button">Teste de carga · 50</button>
       </div>
       <div class="metrics">
-        <article><span>Requisições</span><strong id="requestCount">0</strong></article>
-        <article><span>Erros 4xx/5xx</span><strong id="errorCount">0</strong></article>
-        <article><span>Latência média</span><strong id="averageLatency">— ms</strong></article>
+        <article>
+          <span class="metric-icon violet"><svg viewBox="0 0 24 24"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm0 2v14h14V5H5Zm3 3h8v2H8V8Zm0 4h8v2H8v-2Zm0 4h5v2H8v-2Z"/></svg></span>
+          <div><span>Requisições</span><strong id="requestCount">0</strong></div>
+        </article>
+        <article>
+          <span class="metric-icon red"><svg viewBox="0 0 24 24"><path d="M11 2h2v12h-2V2Zm0 16h2v2h-2v-2ZM4.2 4.9l1.4-1.4 1.5 1.5-1.4 1.4-1.5-1.5Zm12.7 1.5-1.5-1.5 1.4-1.4 1.5 1.5-1.4 1.4ZM2 11h2v2H2v-2Zm18 0h2v2h-2v-2Z"/></svg></span>
+          <div><span>Erros 5xx</span><strong id="errorCount">0</strong></div>
+        </article>
+        <article>
+          <span class="metric-icon green"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 1-7.1 2.9A9.9 9.9 0 0 1 12 2Zm0 2a8 8 0 1 0 5.7 2.3A7.9 7.9 0 0 0 12 4Zm-1 2h2v5.2l3.4 2-1 1.7-4.4-2.6V6Z"/></svg></span>
+          <div><span>Latência média</span><strong id="averageLatency">— ms</strong></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="card history-card">
+      <div class="card-heading">
+        <div>
+          <p class="card-kicker">Sessão atual</p>
+          <h2>Histórico recente</h2>
+        </div>
+        <button id="clearHistory" class="text-button" type="button">Limpar histórico</button>
+      </div>
+      <div id="historyList" class="history-list">
+        <p class="history-empty">Nenhuma análise realizada nesta sessão.</p>
       </div>
     </section>
   </main>
